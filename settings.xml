@@ -18,7 +18,14 @@
     </mirror>
   </mirrors>
   -->
-
+  <mirrors>
+    <mirror>
+      <id>alimaven</id>
+      <name>aliyun maven</name>
+      <url>http://maven.aliyun.com/nexus/content/groups/public/</url>
+      <mirrorOf>central</mirrorOf>
+    </mirror>
+  </mirrors>
   <!--
   Don't forget to add setting-security.xml so that the password get's decrypted  
   -->
@@ -42,18 +49,21 @@
       </activation>
       <repositories>
         <repository>
+          <id>alimaven</id>
+          <name>aliyun maven</name>
+          <url>http://maven.aliyun.com/nexus/content/groups/public/</url>
+        </repository>
+        <repository>
           <id>pentaho-public</id>
           <name>Pentaho Public</name>
           <url>https://repo.orl.eng.hitachivantara.com/artifactory/pnt-mvn/</url>
           <releases>
             <enabled>true</enabled>
-<!--            <updatePolicy>always</updatePolicy>-->
-            <updatePolicy>never</updatePolicy>
+            <updatePolicy>always</updatePolicy>
           </releases>
           <snapshots>
             <enabled>true</enabled>
-<!--            <updatePolicy>always</updatePolicy>-->
-            <updatePolicy>never</updatePolicy>
+            <updatePolicy>always</updatePolicy>
           </snapshots>
         </repository>
       </repositories>
@@ -64,13 +74,11 @@
           <url>https://repo.orl.eng.hitachivantara.com/artifactory/pnt-mvn/</url>
           <releases>
             <enabled>true</enabled>
-<!--            <updatePolicy>always</updatePolicy>-->
-            <updatePolicy>never</updatePolicy>
+            <updatePolicy>always</updatePolicy>
           </releases>
           <snapshots>
             <enabled>true</enabled>
-<!--            <updatePolicy>always</updatePolicy>-->
-            <updatePolicy>never</updatePolicy>
+            <updatePolicy>always</updatePolicy>
           </snapshots>
         </pluginRepository>
       </pluginRepositories>
