@@ -2,7 +2,7 @@
  *
  * Pentaho Data Integration
  *
- * Copyright (C) 2002-2019 by Hitachi Vantara : http://www.pentaho.com
+ * Copyright (C) 2002-2023 by Hitachi Vantara : http://www.pentaho.com
  *
  *******************************************************************************
  *
@@ -63,31 +63,23 @@ public class RedshiftDatabaseMeta extends PostgreSQLDatabaseMeta {
 
   @Override
   public String getDriverClass() {
-    if ( getAccessType() == DatabaseMeta.TYPE_ACCESS_ODBC ) {
-      return "sun.jdbc.odbc.JdbcOdbcDriver";
-    } else {
-      return "com.amazon.redshift.jdbc.Driver";
-    }
+    return "com.amazon.redshift.jdbc.Driver";
   }
 
   @Override
   public String getURL( String hostname, String port, String databaseName ) {
-    if ( getAccessType() == DatabaseMeta.TYPE_ACCESS_ODBC ) {
-      return "jdbc:odbc:" + databaseName;
+    if ( Arrays.asList( PROFILE_CREDENTIALS, IAM_CREDENTIALS ).contains( getAttribute( JDBC_AUTH_METHOD, "" ) ) ) {
+      return "jdbc:redshift:iam://" + hostname + ":" + port + "/" + databaseName;
     } else {
-      if ( Arrays.asList( PROFILE_CREDENTIALS, IAM_CREDENTIALS ).contains( getAttribute( JDBC_AUTH_METHOD, "" ) ) ) {
-        return "jdbc:redshift:iam://" + hostname + ":" + port + "/" + databaseName;
-      } else {
-        return "jdbc:redshift://" + hostname + ":" + port + "/" + databaseName;
-      }
+      return "jdbc:redshift://" + hostname + ":" + port + "/" + databaseName;
     }
   }
 
   @Override public void putOptionalOptions( Map<String, String> extraOptions ) {
     if ( IAM_CREDENTIALS.equals( getAttribute( JDBC_AUTH_METHOD, "" ) ) ) {
-      extraOptions.put( "REDSHIFT.AccessKeyID", getAttribute( IAM_ACCESS_KEY_ID, "" ) );
+      extraOptions.put( "REDSHIFT.AccessKeyID", Encr.decryptPassword( getAttribute( IAM_ACCESS_KEY_ID, "" ) ) );
       extraOptions.put( "REDSHIFT.SecretAccessKey", Encr.decryptPassword( getAttribute( IAM_SECRET_ACCESS_KEY, "" ) ) );
-      extraOptions.put( "REDSHIFT.SessionToken", getAttribute( IAM_SESSION_TOKEN, "" ) );
+      extraOptions.put( "REDSHIFT.SessionToken", Encr.decryptPassword( getAttribute( IAM_SESSION_TOKEN, "" ) ) );
     } else if ( PROFILE_CREDENTIALS.equals( getAttribute( JDBC_AUTH_METHOD, "" ) ) ) {
       extraOptions.put( "REDSHIFT.Profile", getAttribute( IAM_PROFILE_NAME, "" ) );
     }

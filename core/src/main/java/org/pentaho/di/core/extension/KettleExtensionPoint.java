@@ -2,7 +2,7 @@
  *
  * Pentaho Data Integration
  *
- * Copyright (C) 2002-2019 by Hitachi Vantara : http://www.pentaho.com
+ * Copyright (C) 2002-2024 by Hitachi Vantara : http://www.pentaho.com
  *
  *******************************************************************************
  *
@@ -109,6 +109,7 @@ public enum KettleExtensionPoint {
     BeforeCheckStep( "BeforeCheckStep", "Right before a step is about to be verified." ),
     AfterCheckStep( "AfterCheckStep", "After a step has been checked for warnings/errors." ),
 
+    BeforeCarteStartup( "BeforeCarteStartup", "Right before the Carte webserver is started" ),
     CarteStartup( "CarteStartup", "Right after the Carte webserver has started and is fully functional" ),
     CarteShutdown( "CarteShutdown", "Right before the Carte webserver will shut down" ),
 
@@ -130,7 +131,9 @@ public enum KettleExtensionPoint {
     AfterDeleteRepositoryObject( "AfterDeleteRepositoryObject",
       "After an object has been deleted from the repository" ),
 
-    TransformationCreateNew( "TransformationCreateNew", "Create a New Empty Transformation in Spoon" );
+   TransformationCreateNew( "TransformationCreateNew", "Create a New Empty Transformation in Spoon" ),
+   TransSharedObjectsLoaded( "TransSharedObjectsLoaded", "After the shared objects are loaded in Transformations." ),
+   JobSharedObjectsLoaded( "JobSharedObjectsLoaded", "After the shared objects are loaded in Job." );
 
 
   public String id;

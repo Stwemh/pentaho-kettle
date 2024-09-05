@@ -3,7 +3,7 @@
  *
  * Pentaho Data Integration
  *
- * Copyright (C) 2002-2021 by Hitachi Vantara : http://www.pentaho.com
+ * Copyright (C) 2002-2023 by Hitachi Vantara : http://www.pentaho.com
  *
  *******************************************************************************
  *
@@ -142,6 +142,7 @@ import org.pentaho.di.trans.step.StepMetaDataCombi;
 import org.pentaho.di.trans.step.StepPartitioningMeta;
 import org.pentaho.di.trans.steps.mappinginput.MappingInput;
 import org.pentaho.di.trans.steps.mappingoutput.MappingOutput;
+import org.pentaho.di.www.CarteSingleton;
 import org.pentaho.di.www.PrepareExecutionTransServlet;
 import org.pentaho.di.www.RegisterPackageServlet;
 import org.pentaho.di.www.RegisterTransServlet;
@@ -150,7 +151,6 @@ import org.pentaho.di.www.SocketRepository;
 import org.pentaho.di.www.StartExecutionTransServlet;
 import org.pentaho.di.www.WebResult;
 import org.pentaho.metastore.api.IMetaStore;
-
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.pentaho.di.trans.Trans.BitMaskStatus.FINISHED;
 import static org.pentaho.di.trans.Trans.BitMaskStatus.RUNNING;
@@ -186,8 +186,6 @@ public class Trans implements VariableSpace, NamedParams, HasLogChannelInterface
    * The log channel interface.
    */
   protected LogChannelInterface log;
-
-  protected boolean loggingObjectInUse;
 
   /**
    * The log level.
@@ -570,7 +568,6 @@ public class Trans implements VariableSpace, NamedParams, HasLogChannelInterface
    * Instantiates a new transformation.
    */
   public Trans() {
-    setLoggingObjectInUse(true);
     status = new AtomicInteger();
 
     transListeners = Collections.synchronizedList( new ArrayList<TransListener>() );
@@ -653,15 +650,6 @@ public class Trans implements VariableSpace, NamedParams, HasLogChannelInterface
         String.valueOf( transMeta.nrTransHops() ) ) );
     }
 
-  }
-
-  @Override
-  public boolean isLoggingObjectInUse() {
-    return loggingObjectInUse;
-  }
-
-  public void setLoggingObjectInUse( boolean inUse ) {
-    loggingObjectInUse = inUse;
   }
 
   /**
@@ -797,7 +785,6 @@ public class Trans implements VariableSpace, NamedParams, HasLogChannelInterface
 
     log.snap( Metrics.METRIC_TRANSFORMATION_EXECUTION_START );
     log.snap( Metrics.METRIC_TRANSFORMATION_INIT_START );
-
     ExtensionPointHandler.callExtensionPoint( log, KettleExtensionPoint.TransformationPrepareExecution.id, this );
 
     checkCompatibility();
@@ -1641,7 +1628,6 @@ public class Trans implements VariableSpace, NamedParams, HasLogChannelInterface
    * @throws KettleException if any errors occur during notification
    */
   protected void fireTransFinishedListeners() throws KettleException {
-    setLoggingObjectInUse( false );
     // PDI-5229 sync added
     synchronized ( transListeners ) {
       if ( transListeners.size() == 0 ) {
@@ -5126,6 +5112,9 @@ public class Trans implements VariableSpace, NamedParams, HasLogChannelInterface
    * @return the socket repository
    */
   public SocketRepository getSocketRepository() {
+    if ( socketRepository == null ) {
+      return ( socketRepository = CarteSingleton.getInstance().getSocketRepository() );
+    }
     return socketRepository;
   }
 

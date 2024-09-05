@@ -3,7 +3,7 @@
  *
  * Pentaho Data Integration
  *
- * Copyright (C) 2002-2023 by Hitachi Vantara : http://www.pentaho.com
+ * Copyright (C) 2002-2024 by Hitachi Vantara : http://www.pentaho.com
  *
  *******************************************************************************
  *
@@ -1200,6 +1200,9 @@ public class Const {
   // See PDI-17203 for details
   public static final String KETTLE_COMPATIBILITY_XML_OUTPUT_NULL_VALUES = "KETTLE_COMPATIBILITY_XML_OUTPUT_NULL_VALUES";
 
+  // See PDI-19254 for details
+  public static final String KETTLE_COMPATIBILITY_XML_OUTPUT_NULL_IF_FIELD_VALUES = "KETTLE_COMPATIBILITY_XML_OUTPUT_NULL_IF_FIELD_VALUES";
+
   // See PDI-17980 for details
   public static final String KETTLE_COMPATIBILITY_USE_JDBC_METADATA = "KETTLE_COMPATIBILITY_USE_JDBC_METADATA";
 
@@ -1214,6 +1217,9 @@ public class Const {
 
   // See PDI-19138 for details
   public static final String KETTLE_JSON_INPUT_INCLUDE_NULLS = "KETTLE_JSON_INPUT_INCLUDE_NULLS";
+
+  // See PDI-17309 for details
+  public static final String KETTLE_COMPATIBILITY_CONCAT_FIELDS_SPLIT_ROWS_HEADER_OFFSET = "KETTLE_COMPATIBILITY_CONCAT_FIELDS_SPLIT_ROWS_HEADER_OFFSET";
 
   /**
    * This property when set to Y force the same output file even when splits is required.
@@ -1414,6 +1420,10 @@ public class Const {
   public static final String KETTLE_USE_AWS_DEFAULT_CREDENTIALS = "KETTLE_USE_AWS_DEFAULT_CREDENTIALS";
 
   /**
+   * This environment variable allows to enable s3 legacy URI. Please check: PDI-19732.
+   */
+  public static final String KETTLE_COMPATIBILITY_ALLOW_S3_LEGACY_URI = "KETTLE_COMPATIBILITY_ALLOW_S3_LEGACY_URI";
+  /**
    * <p>This environment variable is used by streaming consumer steps to limit the total of concurrent batches across transformations.</p>
    */
   public static final String SHARED_STREAMING_BATCH_POOL_SIZE = "SHARED_STREAMING_BATCH_POOL_SIZE";
@@ -1438,6 +1448,25 @@ public class Const {
     }
     return driversLocation;
   }
+
+  /**
+   * File used to prevent multiple instances of kettle from starting at the same time to avoid file
+   * system contention when building karaf sys/cache directories.
+   */
+  public static final String KARAF_BOOT_LOCK_FILE = "karaf.boot.lock";
+  public static final String KARAF_BOOT_LOCK_WAIT_TIME = "KARAF_BOOT_LOCK_WAIT_TIME";
+  /**
+   * Flag to indicate whether to check for and set a boot lock file when starting karaf, or proceed without the lock.
+   * Default behavior is to not use a lock file and boot without checking or waiting.
+   */
+  public static final String KARAF_WAIT_FOR_BOOT_LOCK_FILE = "KARAF_WAIT_FOR_BOOT_LOCK_FILE";
+
+  /**
+   * Determines whether failure to find the HDFS file system is a fatal error in Hadoop File Input step.
+   * Default (legacy) behavior is false.
+   */
+  public static final String KETTLE_FATAL_ERROR_ON_HDFS_NOT_FOUND = "KETTLE_FATAL_ERROR_ON_HDFS_NOT_FOUND";
+  public static final String KETTLE_FATAL_ERROR_ON_HDFS_NOT_FOUND_DEFAULT = "N";
 
   /**
    * <p>This environment is used to specify how many attempts before failing to read an XML from within a Zip file
@@ -1628,11 +1657,39 @@ public class Const {
   public static final String KETTLE_USE_META_FILE_CACHE_DEFAULT = "N";
 
   /**
+   * If true, do not append real-time logging during Job execution. This prevents the logging from growing too large
+   * in memory, especially for long-running jobs or jobs with a large number of subjobs/subtrans
+   * However, if set to "Y", it would prevent users from seeing any log data visible in tools like the Pentaho Ops Mart,
+   * the kettle job status monitor, and other similar tools. It does not change anything regarding what data gets
+   * written out via log4j such as the tomcat catalina.out log, or pentaho.log, etc.
+   */
+  public static final String KETTLE_SKIP_JOB_LOGGING = "KETTLE_SKIP_JOB_LOGGING";
+  public static final String KETTLE_SKIP_JOB_LOGGING_DEFAULT = "N";
+
+  /**
    * Value used to replace nulls in Python Executor Step Input Lines. Empty will mean no replacement will be done
    */
   public static final String KETTLE_PYTHON_STEP_REPLACE_NULLS = "KETTLE_PYTHON_STEP_REPLACE_NULLS";
 
+  /**
+   Value to revert the behaviour of the flag "Execute every Input Row" behavior back to executing even with 0 rows as job input mode.
+  */
+  public static final String COMPATIBILITY_JOB_EXECUTE_FOR_EVERY_ROW_ON_NO_INPUT = "COMPATIBILITY_JOB_EXECUTE_FOR_EVERY_ROW_ON_NO_INPUT";
 
+  /**
+   Value to revert the behaviour of the flag "Execute every Input Row" behavior back to executing even with 0 rows as trans input mode.
+   */
+    public static final String COMPATIBILITY_TRANS_EXECUTE_FOR_EVERY_ROW_ON_NO_INPUT = "COMPATIBILITY_TRANS_EXECUTE_FOR_EVERY_ROW_ON_NO_INPUT";
+
+  /**
+   Value to show/not show the Warning messages regarding the configured behaviour of the flag "Execute every Input Row"
+   */
+  public static final String COMPATIBILITY_SHOW_WARNINGS_EXECUTE_EVERY_INPUT_ROW = "COMPATIBILITY_SHOW_WARNINGS_EXECUTE_EVERY_INPUT_ROW";
+
+  /**
+   Value to Configure if we want to export only the used connections to the XML file
+   */
+  public static final String STRING_ONLY_USED_DB_TO_XML = "STRING_ONLY_USED_DB_TO_XML";
 
   /**
    * rounds double f to any number of places after decimal point Does arithmetic using BigDecimal class to avoid integer
@@ -2660,6 +2717,22 @@ public class Const {
    */
   public static String NVL( String source, String def ) {
     if ( source == null || source.length() == 0 ) {
+      return def;
+    }
+    return source;
+  }
+
+  /**
+   * Implements Oracle style NVL function for generic arguments
+   *
+   * @param source
+   *          The source argument
+   * @param def
+   *          The default value in case source is null
+   * @return source if source is not null, otherwise return def
+   */
+  public static <T> T NVL( T source, T def ) {
+    if ( source == null ) {
       return def;
     }
     return source;

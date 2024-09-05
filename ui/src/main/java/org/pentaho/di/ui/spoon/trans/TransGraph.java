@@ -3,7 +3,7 @@
  *
  * Pentaho Data Integration
  *
- * Copyright (C) 2002-2019 by Hitachi Vantara : http://www.pentaho.com
+ * Copyright (C) 2002-2023 by Hitachi Vantara : http://www.pentaho.com
  *
  *******************************************************************************
  *
@@ -1894,6 +1894,7 @@ public class TransGraph extends AbstractGraph implements XulEventHandler, Redraw
    * Allows for magnifying to any percentage entered by the user...
    */
   private void readMagnification() {
+    float previousMagnification = magnification;
     String possibleText = zoomLabel.getText();
     possibleText = possibleText.replace( "%", "" );
 
@@ -1901,12 +1902,17 @@ public class TransGraph extends AbstractGraph implements XulEventHandler, Redraw
     try {
       possibleFloatMagnification = Float.parseFloat( possibleText ) / 100;
       magnification = possibleFloatMagnification;
+      if ( magnification < MIN_ZOOM || magnification > MAX_ZOOM ) {
+        magnification = previousMagnification;
+        log.logError( "Invalid zoom value: " + zoomLabel.getText() );
+        throw new IllegalArgumentException( );
+      }
       if ( zoomLabel.getText().indexOf( '%' ) < 0 ) {
         zoomLabel.setText( zoomLabel.getText().concat( "%" ) );
       }
     } catch ( Exception e ) {
       modalMessageDialog( getString( "TransGraph.Dialog.InvalidZoomMeasurement.Title" ),
-        getString( "TransGraph.Dialog.InvalidZoomMeasurement.Message", zoomLabel.getText() ),
+        getString( "TransGraph.Dialog.InvalidZoomMeasurement.Message", String.valueOf( (int) ( MIN_ZOOM * 100 ) ), String.valueOf( (int) MAX_ZOOM * 100 ) ),
         SWT.YES | SWT.ICON_ERROR );
     }
     redraw();
@@ -4146,7 +4152,6 @@ public class TransGraph extends AbstractGraph implements XulEventHandler, Redraw
       halting = true;
       trans.stopAll();
       log.logMinimal( BaseMessages.getString( PKG, "TransLog.Log.ProcessingOfTransformationStopped" ) );
-
       running = false;
       initialized = false;
       halted = false;
@@ -4392,7 +4397,6 @@ public class TransGraph extends AbstractGraph implements XulEventHandler, Redraw
     if ( trans != null ) {
       if ( trans.isFinished() && ( running || halted ) ) {
         log.logMinimal( BaseMessages.getString( PKG, "TransLog.Log.TransformationHasFinished" ) );
-
         running = false;
         initialized = false;
         halted = false;
@@ -4520,7 +4524,7 @@ public class TransGraph extends AbstractGraph implements XulEventHandler, Redraw
       } else {
         StepMetaInterface meta = stepMeta.getStepMetaInterface();
         if ( !Utils.isEmpty( meta.getReferencedObjectDescriptions() ) ) {
-          referencedMeta = meta.loadReferencedObject( index, spoon.rep, spoon.metaStore, transMeta );
+          referencedMeta = meta.loadReferencedObject( index, spoon.rep, spoon.getMetaStore(), transMeta );
         }
       }
       if ( referencedMeta == null ) {

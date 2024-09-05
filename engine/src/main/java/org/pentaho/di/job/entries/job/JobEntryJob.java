@@ -2,7 +2,7 @@
  *
  * Pentaho Data Integration
  *
- * Copyright (C) 2002-2021 by Hitachi Vantara : http://www.pentaho.com
+ * Copyright (C) 2002-2023 by Hitachi Vantara : http://www.pentaho.com
  *
  *******************************************************************************
  *
@@ -731,7 +731,8 @@ public class JobEntryJob extends JobEntryBase implements Cloneable, JobEntryInte
       List<RowMetaAndData> rows = new ArrayList<RowMetaAndData>( result.getRows() );
 
       while ( ( first && !execPerRow )
-        || ( execPerRow && rows != null && iteration < rows.size() && result.getNrErrors() == 0 ) ) {
+        || ( execPerRow && !rows.isEmpty() && iteration < rows.size() && result.getNrErrors() == 0 )
+        || ( execPerRow && rows.isEmpty() && iteration <= rows.size() && shouldConsiderOldBehaviourForEveryInputRow() ) ) {
 
         first = false;
         // Clear the result rows of the result
@@ -1233,8 +1234,21 @@ public class JobEntryJob extends JobEntryBase implements Cloneable, JobEntryInte
       result.setResult( true );
     }
 
-    setLoggingObjectInUse( false );
     return result;
+  }
+
+  private boolean shouldConsiderOldBehaviourForEveryInputRow( ) {
+    boolean shouldExecuteWithZeroRows = "Y".equalsIgnoreCase( System.getProperty( Const.COMPATIBILITY_JOB_EXECUTE_FOR_EVERY_ROW_ON_NO_INPUT, "N" ) );
+    if ( "Y".equalsIgnoreCase( System.getProperty( Const.COMPATIBILITY_SHOW_WARNINGS_EXECUTE_EVERY_INPUT_ROW, "N" ) ) ) {
+      if ( shouldExecuteWithZeroRows ) {
+        log.logBasic(
+          "WARN Detected \"Execute for every row\" but no rows were detected, applying desired behavior, to execute. In case this is not desired behavior, please read property COMPATIBILITY_JOB_EXECUTE_FOR_EVERY_ROW_ON_NO_INPUT" );
+      } else {
+        log.logBasic(
+          "WARN Detected \"Execute for every row\" but no rows were detected, applying default behavior, not to execute. In case this is not desired behavior, please read property COMPATIBILITY_JOB_EXECUTE_FOR_EVERY_ROW_ON_NO_INPUT" );
+      }
+    }
+    return shouldExecuteWithZeroRows;
   }
 
   private boolean createParentFolder( String filename ) {
@@ -1384,11 +1398,7 @@ public class JobEntryJob extends JobEntryBase implements Cloneable, JobEntryInte
   @Deprecated
   public JobMeta getJobMeta( Repository rep, VariableSpace space ) throws KettleException {
     parentJobMeta.getMetaFileCache( ); //Get the cache from the parent or create it
-    if ( rep != null ) {
-      return getJobMeta( rep, rep.getMetaStore(), space );
-    } else {
-      return getJobMeta( rep, getMetaStore(), space );
-    }
+    return getJobMeta( rep, getMetaStore(), space );
   }
 
   protected JobMeta getJobMetaFromRepository( Repository rep, CurrentDirectoryResolver r, String transPath, VariableSpace tmpSpace ) throws KettleException {
@@ -1730,6 +1740,19 @@ public class JobEntryJob extends JobEntryBase implements Cloneable, JobEntryInte
     }
     if ( parentJobMeta !=  null ) {
       parentJobMeta.addCurrentDirectoryChangedListener( this.dirListener );
+    }
+  }
+
+  @Override public void callBeforeLog() {
+    if ( parentJob != null ) {
+      parentJob.callBeforeLog();
+    }
+  }
+
+  @Override
+  public void callAfterLog() {
+    if ( parentJob != null ) {
+      parentJob.callAfterLog();
     }
   }
 

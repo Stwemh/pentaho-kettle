@@ -50,6 +50,7 @@ import org.pentaho.di.core.logging.LogChannel;
 import org.pentaho.di.core.plugins.LifecyclePluginType;
 import org.pentaho.di.core.plugins.PluginInterface;
 import org.pentaho.di.core.plugins.PluginRegistry;
+import org.pentaho.di.core.util.StringUtil;
 import org.pentaho.di.core.util.Utils;
 import org.pentaho.di.laf.BasePropertyHandler;
 import org.pentaho.di.ui.core.gui.GUIResource;
@@ -93,6 +94,8 @@ public class PropsUI extends Props {
   protected List<LastUsedFile> lastUsedFiles;
   protected List<LastUsedFile> openTabFiles;
   protected Map<String, List<LastUsedFile>> lastUsedRepoFiles;
+
+  protected String lastUsedLocalFile;
 
   protected String overriddenFileName;
 
@@ -249,6 +252,7 @@ public class PropsUI extends Props {
     lastUsedRepoFiles = new LinkedHashMap<>();
     openTabFiles = new ArrayList<LastUsedFile>();
     screens = new Hashtable<String, WindowProperty>();
+    lastUsedLocalFile = StringUtil.EMPTY_STRING;
 
     properties.setProperty( STRING_LOG_LEVEL, getLogLevel() );
     properties.setProperty( STRING_LOG_FILTER, getLogFilter() );
@@ -369,6 +373,7 @@ public class PropsUI extends Props {
   }
 
   public void setLastFiles() {
+    properties.setProperty( "lastUsedLocalFile", lastUsedLocalFile );
     properties.setProperty( "lastfiles", "" + lastUsedFiles.size() );
     for ( int i = 0; i < lastUsedFiles.size(); i++ ) {
       LastUsedFile lastUsedFile = lastUsedFiles.get( i );
@@ -469,6 +474,14 @@ public class PropsUI extends Props {
     addLastRepoFile( lastUsedFile );
   }
 
+  public void setLastUsedLocalFile( String filePath ) {
+    lastUsedLocalFile = filePath;
+  }
+
+  public String getLastUsedLocalFile() {
+    return lastUsedLocalFile;
+  }
+
   private void addLastRepoFile( LastUsedFile lastUsedFile ) {
     String repositoryName = lastUsedFile.getRepositoryName();
     String username = lastUsedFile.getUsername() != null ? lastUsedFile.getUsername() : "";
@@ -530,6 +543,8 @@ public class PropsUI extends Props {
         new LastUsedFile( fileType, filename, directory, sourceRepository, repositoryName, isOpened,
           openItemTypes ) );
     }
+
+    lastUsedLocalFile = Const.NVL( properties.getProperty( "lastUsedLocalFile" ), "" );
   }
 
   public void loadLastUsedRepoFiles() {

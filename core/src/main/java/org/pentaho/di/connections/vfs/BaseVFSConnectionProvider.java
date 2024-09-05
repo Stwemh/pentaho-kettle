@@ -2,7 +2,7 @@
  *
  * Pentaho Data Integration
  *
- * Copyright (C) 2019-2022 by Hitachi Vantara : http://www.pentaho.com
+ * Copyright (C) 2019-2024 by Hitachi Vantara : http://www.pentaho.com
  *
  *******************************************************************************
  *
@@ -22,7 +22,8 @@
 
 package org.pentaho.di.connections.vfs;
 
-import org.pentaho.di.connections.ConnectionDetails;
+import edu.umd.cs.findbugs.annotations.NonNull;
+import org.apache.commons.vfs2.FileSystemOptions;
 import org.pentaho.di.connections.ConnectionManager;
 import org.pentaho.di.core.exception.KettleException;
 import org.pentaho.di.core.row.value.ValueMetaBase;
@@ -36,23 +37,54 @@ import java.util.function.Supplier;
 
 public abstract class BaseVFSConnectionProvider<T extends VFSConnectionDetails> implements VFSConnectionProvider<T> {
 
+  @NonNull
   private Supplier<ConnectionManager> connectionManagerSupplier = ConnectionManager::getInstance;
 
-  @Override public List<String> getNames() {
-    return connectionManagerSupplier.get().getNamesByType( getClass() );
+  /**
+   * This method was added solely to support unit testing of deprecated behavior.
+   *
+   * @param connectionManagerSupplier A supplier of connection manager.
+   * @deprecated
+   */
+  @Deprecated( forRemoval = true )
+  protected void setConnectionManagerSupplier( @NonNull Supplier<ConnectionManager> connectionManagerSupplier ) {
+    this.connectionManagerSupplier = Objects.requireNonNull( connectionManagerSupplier );
+  }
+
+  @Override
+  public List<String> getNames() {
+    return getNames( connectionManagerSupplier.get() );
+  }
+
+  @Override
+  public List<T> getConnectionDetails() {
+    return getConnectionDetails( connectionManagerSupplier.get() );
+  }
+
+  @Override
+  public List<String> getNames( @NonNull ConnectionManager connectionManager ) {
+    return connectionManager.getNamesByType( getClass() );
   }
 
   @SuppressWarnings( "unchecked" )
-  @Override public List<T> getConnectionDetails() {
-    return (List<T>) connectionManagerSupplier.get().getConnectionDetailsByScheme( getKey() );
+  @Override
+  public List<T> getConnectionDetails( @NonNull ConnectionManager connectionManager ) {
+    return (List<T>) connectionManager.getConnectionDetailsByScheme( getKey() );
   }
 
-  @Override public T prepare( T connectionDetails ) throws KettleException {
+  @Override
+  public T prepare( T connectionDetails ) throws KettleException {
     return connectionDetails;
   }
 
-  @Override public String sanitizeName( String string ) {
+  @Override
+  public String sanitizeName( String string ) {
     return string;
+  }
+
+  @Override
+  public FileSystemOptions getOpts( T connectionDetails ) {
+    return new FileSystemOptions();
   }
 
   // Utility method to perform variable substitution on values
@@ -75,7 +107,8 @@ public abstract class BaseVFSConnectionProvider<T extends VFSConnectionDetails> 
     return Objects.equals( Boolean.TRUE, ValueMetaBase.convertStringToBoolean( defaultValue ) );
   }
 
-  protected VariableSpace getSpace( ConnectionDetails connectionDetails ) {
+  @NonNull
+  protected VariableSpace getSpace( @NonNull T connectionDetails ) {
     return connectionDetails.getSpace() == null ? Variables.getADefaultVariableSpace() : connectionDetails.getSpace();
   }
 }

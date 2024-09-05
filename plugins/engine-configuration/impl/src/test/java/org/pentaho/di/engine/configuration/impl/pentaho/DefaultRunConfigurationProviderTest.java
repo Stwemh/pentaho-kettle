@@ -3,7 +3,7 @@
  *
  *  Pentaho Data Integration
  *
- *  Copyright (C) 2017 - 2022 by Hitachi Vantara : http://www.pentaho.com
+ *  Copyright (C) 2017 - 2024 by Hitachi Vantara : http://www.pentaho.com
  *
  *  *******************************************************************************
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may not use
@@ -28,23 +28,22 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
-import org.mockito.runners.MockitoJUnitRunner;
+import org.mockito.junit.MockitoJUnitRunner;
 import org.pentaho.di.engine.configuration.api.RunConfiguration;
-import org.pentaho.metastore.api.IMetaStore;
-import org.pentaho.metastore.locator.api.MetastoreLocator;
+import org.pentaho.di.engine.configuration.impl.CheckedMetaStoreSupplier;
 
 import static org.junit.Assert.assertEquals;
 
 /**
  * Created by bmorrise on 4/4/17.
  */
-@RunWith( MockitoJUnitRunner.class )
+@RunWith( MockitoJUnitRunner.StrictStubs.class )
 public class DefaultRunConfigurationProviderTest {
 
   private DefaultRunConfigurationProvider defaultRunConfigurationProvider;
 
   @Mock
-  private MetastoreLocator metastoreLocator;
+  private CheckedMetaStoreSupplier metastoreSupplier;
 
   @Mock
   private DefaultRunConfigurationExecutor defaultRunConfigurationExecutor;
@@ -52,7 +51,7 @@ public class DefaultRunConfigurationProviderTest {
   @Before
   public void setup() {
     defaultRunConfigurationProvider =
-      new DefaultRunConfigurationProvider( metastoreLocator );
+      new DefaultRunConfigurationProvider( metastoreSupplier );
   }
 
   @Test

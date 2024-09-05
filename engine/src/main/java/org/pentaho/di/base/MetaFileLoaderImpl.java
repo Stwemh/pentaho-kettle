@@ -2,7 +2,7 @@
  *
  * Pentaho Data Integration
  *
- * Copyright (C) 2002-2022 by Hitachi Vantara : http://www.pentaho.com
+ * Copyright (C) 2002-2024 by Hitachi Vantara : http://www.pentaho.com
  *
  *******************************************************************************
  *
@@ -62,6 +62,7 @@ import static org.pentaho.di.core.Const.INTERNAL_VARIABLE_TRANSFORMATION_FILENAM
  * @param <T> Either a TransMeta or JobMeta
  */
 public class MetaFileLoaderImpl<T> implements IMetaFileLoader<T> {
+
   JobEntryBase jobEntryBase;
 
   private ObjectLocationSpecificationMethod specificationMethod;
@@ -72,8 +73,12 @@ public class MetaFileLoaderImpl<T> implements IMetaFileLoader<T> {
   private final ObjectId metaObjectId;
   private final String friendlyMetaType; //For error text
   private String filename;
+  private boolean useCache = false;
 
   private BaseStepMeta baseStepMeta;
+
+  public static final String KJB = ".kjb";
+  public static final String KTR = ".ktr";
 
   /**
    * @param jobEntryBase        either a JobEntryTrans or JobEntryJob Object
@@ -104,6 +109,7 @@ public class MetaFileLoaderImpl<T> implements IMetaFileLoader<T> {
     } else {
       throw new IllegalArgumentException( "JobEntryBase must be a JobEntryTrans or JobEntryJob object" );
     }
+    useCache = "Y".equalsIgnoreCase( System.getProperty( Const.KETTLE_USE_META_FILE_CACHE, Const.KETTLE_USE_META_FILE_CACHE_DEFAULT ) );
   }
 
   /**
@@ -139,6 +145,7 @@ public class MetaFileLoaderImpl<T> implements IMetaFileLoader<T> {
     } else {
       throw new IllegalArgumentException( "JobEntryBase must be a JobEntryTrans or JobEntryJob object" );
     }
+    useCache = "Y".equalsIgnoreCase( System.getProperty( Const.KETTLE_USE_META_FILE_CACHE, Const.KETTLE_USE_META_FILE_CACHE_DEFAULT ) );
   }
 
   public T getMetaForEntry( Repository rep, IMetaStore metaStore, VariableSpace space ) throws KettleException {
@@ -255,18 +262,18 @@ public class MetaFileLoaderImpl<T> implements IMetaFileLoader<T> {
   }
 
   private void cacheMeta( String cacheKey, T theMeta ) {
-    if ( theMeta != null && metaFileCache != null ) {
+    if ( useCache && theMeta != null && metaFileCache != null ) {
       if ( isTransMeta() ) {
         TransMeta transMeta = (TransMeta) theMeta;
         transMeta.setMetaFileCache( metaFileCache );
         if ( cacheKey != null ) {
-          metaFileCache.cacheMeta( metaFileCache.getKey( specificationMethod, cacheKey ), transMeta );
+          metaFileCache.cacheMeta( metaFileCache.getKey( specificationMethod, cacheKey.endsWith( KTR ) ? cacheKey : cacheKey + KTR ), transMeta );
         }
       } else {
         JobMeta jobMeta = (JobMeta) theMeta;
         jobMeta.setMetaFileCache( metaFileCache );
         if ( cacheKey != null ) {
-          metaFileCache.cacheMeta( metaFileCache.getKey( specificationMethod, cacheKey ), jobMeta );
+          metaFileCache.cacheMeta( metaFileCache.getKey( specificationMethod, cacheKey.endsWith( KJB ) ? cacheKey : cacheKey + KJB ), jobMeta );
         }
       }
     }
@@ -329,12 +336,12 @@ public class MetaFileLoaderImpl<T> implements IMetaFileLoader<T> {
   }
 
   private T attemptCacheRead( String realFilename ) {
-    if ( "N".equalsIgnoreCase( System.getProperty( Const.KETTLE_USE_META_FILE_CACHE, Const.KETTLE_USE_META_FILE_CACHE_DEFAULT ) ) || metaFileCache == null ) {
+    if ( !useCache || metaFileCache == null ) {
       return null;
     }
     return isTransMeta()
-      ? (T) metaFileCache.getCachedTransMeta( metaFileCache.getKey( specificationMethod, realFilename ) )
-      : (T) metaFileCache.getCachedJobMeta( metaFileCache.getKey( specificationMethod, realFilename ) );
+      ? (T) metaFileCache.getCachedTransMeta( metaFileCache.getKey( specificationMethod, realFilename.endsWith( KTR ) ? realFilename : realFilename + KTR ) )
+      : (T) metaFileCache.getCachedJobMeta( metaFileCache.getKey( specificationMethod, realFilename.endsWith( KJB ) ? realFilename : realFilename + KJB ) );
   }
 
   private boolean isTransMeta() {

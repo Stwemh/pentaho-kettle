@@ -40,8 +40,6 @@ public class ReleaseSavePointTest {
   DatabaseInterface[] support = new DatabaseInterface[] {
     new AS400DatabaseMeta(),
     new DB2DatabaseMeta(),
-    new DbaseDatabaseMeta(),
-    new DerbyDatabaseMeta(),
     new ExtenDBDatabaseMeta(),
     new FirebirdDatabaseMeta(),
     new GenericDatabaseMeta(),
@@ -55,7 +53,6 @@ public class ReleaseSavePointTest {
     new KingbaseESDatabaseMeta(),
     new LucidDBDatabaseMeta(),
     new MondrianNativeDatabaseMeta(),
-    new MSAccessDatabaseMeta(),
     new MSSQLServerDatabaseMeta(),
     new MSSQLServerNativeDatabaseMeta(),
     new MonetDBDatabaseMeta(),

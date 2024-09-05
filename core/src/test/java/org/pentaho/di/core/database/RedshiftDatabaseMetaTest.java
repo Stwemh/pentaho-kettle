@@ -2,7 +2,7 @@
  *
  * Pentaho Data Integration
  *
- * Copyright (C) 2002-2019 by Hitachi Vantara : http://www.pentaho.com
+ * Copyright (C) 2002-2023 by Hitachi Vantara : http://www.pentaho.com
  *
  *******************************************************************************
  *
@@ -78,8 +78,6 @@ public class RedshiftDatabaseMetaTest {
   @Test
   public void testGetDriverClass() throws Exception {
     assertEquals( "com.amazon.redshift.jdbc.Driver", dbMeta.getDriverClass() );
-    dbMeta.setAccessType( DatabaseMeta.TYPE_ACCESS_ODBC );
-    assertEquals( "sun.jdbc.odbc.JdbcOdbcDriver", dbMeta.getDriverClass() );
   }
 
   @Test
@@ -87,13 +85,11 @@ public class RedshiftDatabaseMetaTest {
     assertEquals( "jdbc:redshift://:/", dbMeta.getURL( "", "", "" ) );
     assertEquals( "jdbc:redshift://rs.pentaho.com:4444/myDB",
       dbMeta.getURL( "rs.pentaho.com", "4444", "myDB" ) );
-    dbMeta.setAccessType( DatabaseMeta.TYPE_ACCESS_ODBC );
-    assertEquals( "jdbc:odbc:myDB", dbMeta.getURL( null, "Not Null", "myDB" ) );
     dbMeta.setAccessType( DatabaseMeta.TYPE_ACCESS_NATIVE );
     dbMeta.addAttribute( JDBC_AUTH_METHOD, IAM_CREDENTIALS );
-    dbMeta.addAttribute( IAM_ACCESS_KEY_ID, "myid" );
+    dbMeta.addAttribute( IAM_ACCESS_KEY_ID, Encr.encryptPassword( "myid" ) );
     dbMeta.addAttribute( IAM_SECRET_ACCESS_KEY, Encr.encryptPassword( "mysecretkey" ) );
-    dbMeta.addAttribute( IAM_SESSION_TOKEN, "mytoken" );
+    dbMeta.addAttribute( IAM_SESSION_TOKEN, Encr.encryptPassword( "mytoken" ) );
     assertEquals(
       "jdbc:redshift:iam://amazonhost:12345/foodmart",
       dbMeta.getURL( "amazonhost", "12345", "foodmart" ) );

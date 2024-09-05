@@ -2,7 +2,7 @@
  *
  * Pentaho Data Integration
  *
- * Copyright (C) 2002-2023 by Hitachi Vantara : http://www.pentaho.com
+ * Copyright (C) 2002-2024 by Hitachi Vantara : http://www.pentaho.com
  *
  *******************************************************************************
  *
@@ -54,7 +54,6 @@ import org.pentaho.di.trans.step.StepInterface;
 import org.pentaho.di.trans.step.StepMeta;
 import org.pentaho.di.trans.step.StepMetaInterface;
 import org.pentaho.di.trans.steps.file.BaseFileOutputMeta;
-import org.pentaho.di.workarounds.ResolvableResource;
 import org.pentaho.metastore.api.IMetaStore;
 import org.w3c.dom.Node;
 
@@ -67,7 +66,7 @@ import java.util.Map;
  *
  */
 @InjectionSupported( localizationPrefix = "TextFileOutput.Injection.", groups = { "OUTPUT_FIELDS" } )
-public class TextFileOutputMeta extends BaseFileOutputMeta implements StepMetaInterface, ResolvableResource {
+public class TextFileOutputMeta extends BaseFileOutputMeta implements StepMetaInterface {
   private static Class<?> PKG = TextFileOutputMeta.class; // for i18n purposes, needed by Translator2!!
 
   // Strings used in XML
@@ -1150,20 +1149,6 @@ public class TextFileOutputMeta extends BaseFileOutputMeta implements StepMetaIn
     return servletOutput;
   }
 
-  @Override
-  public void resolve() {
-    if ( fileName != null && !fileName.isEmpty() ) {
-      try {
-        FileObject fileObject = KettleVFS.getFileObject( getParentStepMeta().getParentTransMeta().environmentSubstitute( fileName ) );
-        if ( AliasedFileObject.isAliasedFile( fileObject ) ) {
-          fileName = ( (AliasedFileObject) fileObject ).getAELSafeURIString();
-        }
-      } catch ( KettleFileException e ) {
-        throw new RuntimeException( e );
-      }
-    }
-  }
-
   /**
    * <p>Creates a copy of the meta information of the output fields, so that we don't make any changes to the
    * original meta information.</p>
@@ -1172,38 +1157,36 @@ public class TextFileOutputMeta extends BaseFileOutputMeta implements StepMetaIn
    * @param data
    */
   protected synchronized void calcMetaWithFieldOptions( TextFileOutputData data ) {
-    if ( null == metaWithFieldOptions ) {
-      if ( !Utils.isEmpty( getOutputFields() ) ) {
-        metaWithFieldOptions = new ValueMetaInterface[ getOutputFields().length ];
+    if ( !Utils.isEmpty( getOutputFields() ) ) {
+      metaWithFieldOptions = new ValueMetaInterface[ getOutputFields().length ];
 
-        for ( int i = 0; i < getOutputFields().length; ++i ) {
-          ValueMetaInterface v = data.outputRowMeta.getValueMeta( data.fieldnrs[ i ] );
+      for ( int i = 0; i < getOutputFields().length; ++i ) {
+        ValueMetaInterface v = data.outputRowMeta.getValueMeta( data.fieldnrs[ i ] );
 
-          if ( v != null ) {
-            metaWithFieldOptions[ i ] = v.clone();
+        if ( v != null ) {
+          metaWithFieldOptions[ i ] = v.clone();
 
-            TextFileField field = getOutputFields()[ i ];
-            metaWithFieldOptions[ i ].setLength( field.getLength() );
-            metaWithFieldOptions[ i ].setPrecision( field.getPrecision() );
-            if ( !Utils.isEmpty( field.getFormat() ) ) {
-              metaWithFieldOptions[ i ].setConversionMask( field.getFormat() );
-            }
-            metaWithFieldOptions[ i ].setDecimalSymbol( field.getDecimalSymbol() );
-            metaWithFieldOptions[ i ].setGroupingSymbol( field.getGroupingSymbol() );
-            metaWithFieldOptions[ i ].setCurrencySymbol( field.getCurrencySymbol() );
-            metaWithFieldOptions[ i ].setTrimType( field.getTrimType() );
-            if ( !Utils.isEmpty( getEncoding() ) ) {
-              metaWithFieldOptions[ i ].setStringEncoding( getEncoding() );
-            }
-
-            // enable output padding by default to be compatible with v2.5.x
-            //
-            metaWithFieldOptions[ i ].setOutputPaddingEnabled( true );
+          TextFileField field = getOutputFields()[ i ];
+          metaWithFieldOptions[ i ].setLength( field.getLength() );
+          metaWithFieldOptions[ i ].setPrecision( field.getPrecision() );
+          if ( !Utils.isEmpty( field.getFormat() ) ) {
+            metaWithFieldOptions[ i ].setConversionMask( field.getFormat() );
           }
+          metaWithFieldOptions[ i ].setDecimalSymbol( field.getDecimalSymbol() );
+          metaWithFieldOptions[ i ].setGroupingSymbol( field.getGroupingSymbol() );
+          metaWithFieldOptions[ i ].setCurrencySymbol( field.getCurrencySymbol() );
+          metaWithFieldOptions[ i ].setTrimType( field.getTrimType() );
+          if ( !Utils.isEmpty( getEncoding() ) ) {
+            metaWithFieldOptions[ i ].setStringEncoding( getEncoding() );
+          }
+
+          // enable output padding by default to be compatible with v2.5.x
+          //
+          metaWithFieldOptions[ i ].setOutputPaddingEnabled( true );
         }
-      } else {
-        metaWithFieldOptions = null;
       }
+    } else {
+      metaWithFieldOptions = null;
     }
   }
 

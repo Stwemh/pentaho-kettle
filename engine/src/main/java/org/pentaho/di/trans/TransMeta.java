@@ -3,7 +3,7 @@
  *
  * Pentaho Data Integration
  *
- * Copyright (C) 2002-2022 by Hitachi Vantara : http://www.pentaho.com
+ * Copyright (C) 2002-2024 by Hitachi Vantara : http://www.pentaho.com
  *
  *******************************************************************************
  *
@@ -24,6 +24,7 @@
 package org.pentaho.di.trans;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Strings;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.builder.HashCodeBuilder;
 import org.apache.commons.vfs2.FileName;
@@ -139,7 +140,7 @@ import java.util.stream.Collectors;
  */
 public class TransMeta extends AbstractMeta
     implements XMLInterface, Comparator<TransMeta>, Comparable<TransMeta>, Cloneable, ResourceExportInterface,
-    RepositoryElementInterface {
+    RepositoryElementInterface, LoggingObjectInterface {
 
   /** The package name, used for internationalization of messages. */
   private static Class<?> PKG = Trans.class; // for i18n purposes, needed by Translator2!!
@@ -2565,11 +2566,10 @@ public class TransMeta extends AbstractMeta
     if ( includeDatabase ) {
       for ( int i = 0; i < nrDatabases(); i++ ) {
         DatabaseMeta dbMeta = getDatabase( i );
-        if ( props != null && props.areOnlyUsedConnectionsSavedToXML() ) {
-          if ( isDatabaseConnectionUsed( dbMeta ) ) {
-            retval.append( dbMeta.getXML() );
-          }
-        } else {
+        //PDI-20078 - If props == null, it means transformation is running on the slave server. For the
+        // method areOnlyUsedConnectionsSavedToXMLInServer to return false, the "STRING_ONLY_USED_DB_TO_XML"
+        // needs to have "N" in the server startup script file
+        if ( isDatabaseConnectionUsed( dbMeta ) || ( props != null && !props.areOnlyUsedConnectionsSavedToXML() ) || ( props == null && !areOnlyUsedConnectionsSavedToXMLInServer() ) ) {
           retval.append( dbMeta.getXML() );
         }
       }
@@ -2618,6 +2618,11 @@ public class TransMeta extends AbstractMeta
     retval.append( XMLHandler.closeTag( XML_TAG ) ).append( Const.CR );
 
     return XMLFormatter.format( retval.toString() );
+  }
+
+  public boolean areOnlyUsedConnectionsSavedToXMLInServer() {
+    String show = System.getProperty( Const.STRING_ONLY_USED_DB_TO_XML, "Y" );
+    return "Y".equalsIgnoreCase( show ); // Default: save only used connections
   }
 
   /**
@@ -3015,6 +3020,9 @@ public class TransMeta extends AbstractMeta
             .logError( BaseMessages.getString( PKG, "TransMeta.ErrorReadingSharedObjects.Message", e.toString() ) );
           log.logError( Const.getStackTracker( e ) );
         }
+
+        // Call the extension point after the shared objects are loaded
+        ExtensionPointHandler.callExtensionPoint( log, KettleExtensionPoint.TransSharedObjectsLoaded.id, this );
 
         // Load the database connections, slave servers, cluster schemas & partition schemas into this object.
         //
@@ -5265,11 +5273,11 @@ public class TransMeta extends AbstractMeta
           stringList.add( new StringSearchResult( meta.getServername(), meta, this,
               BaseMessages.getString( PKG, "TransMeta.SearchMetadata.DatabaseServer" ) ) );
         }
-        if ( includePasswords ) {
+
           if ( meta.getPassword() != null ) {
-            stringList.add( new StringSearchResult( meta.getPassword(), meta, this,
+            stringList.add( new StringSearchResult( Strings.repeat("*", meta.getPassword().length()), meta, this,
                 BaseMessages.getString( PKG, "TransMeta.SearchMetadata.DatabasePassword" ) ) );
-          }
+
         }
       }
     }

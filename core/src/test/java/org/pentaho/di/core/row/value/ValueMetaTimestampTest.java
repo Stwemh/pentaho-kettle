@@ -2,7 +2,7 @@
  *
  * Pentaho Data Integration
  *
- * Copyright (C) 2002-2020 by Hitachi Vantara : http://www.pentaho.com
+ * Copyright (C) 2002-2024 by Hitachi Vantara : http://www.pentaho.com
  *
  *******************************************************************************
  *
@@ -40,8 +40,8 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyInt;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 
@@ -212,6 +212,21 @@ public class ValueMetaTimestampTest {
     ValueMetaTimestamp valueMetaTimestamp = new ValueMetaTimestamp();
     Timestamp result = valueMetaTimestamp.convertIntegerToTimestamp( TIMESTAMP_AS_NANOSECONDS );
     assertEquals( TIMESTAMP_WITH_NANOSECONDS, result );
+  }
+
+  @Test
+  public void testConvertTimestampToInteger_DifferentTimeZone() throws KettleValueException {
+    System.setProperty( Const.KETTLE_TIMESTAMP_NUMBER_CONVERSION_MODE,
+            Const.KETTLE_TIMESTAMP_NUMBER_CONVERSION_MODE_NANOSECONDS );
+    ValueMetaTimestamp valueMetaTimestamp = new ValueMetaTimestamp();
+    TimeZone.setDefault(TimeZone.getTimeZone("Etc/UTC"));
+    long result = valueMetaTimestamp.getInteger( TIMESTAMP_WITH_NANOSECONDS );
+    assertEquals( 1567312496123456789L, result );
+    System.setProperty( Const.KETTLE_TIMESTAMP_NUMBER_CONVERSION_MODE, "Something invalid!" );
+    valueMetaTimestamp = new ValueMetaTimestamp();
+    TimeZone.setDefault(TimeZone.getTimeZone("Etc/UTC"));
+    result = valueMetaTimestamp.getInteger( TIMESTAMP_WITH_NANOSECONDS );
+    assertEquals( 1567308896123L, result );
   }
 
   @Test

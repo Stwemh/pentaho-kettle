@@ -27,8 +27,10 @@ import org.eclipse.jetty.http.HttpVersion;
 import org.eclipse.jetty.jaas.JAASLoginService;
 import org.eclipse.jetty.security.ConstraintMapping;
 import org.eclipse.jetty.security.ConstraintSecurityHandler;
+import org.eclipse.jetty.security.DefaultIdentityService;
 import org.eclipse.jetty.security.HashLoginService;
 import org.eclipse.jetty.security.UserStore;
+import org.eclipse.jetty.security.authentication.BasicAuthenticator;
 import org.eclipse.jetty.server.Connector;
 import org.eclipse.jetty.server.Handler;
 import org.eclipse.jetty.server.HttpConfiguration;
@@ -72,7 +74,6 @@ import java.util.TimerTask;
 public class WebServer {
 
   private static final int DEFAULT_DETECTION_TIMER = 20000;
-  public static final String DEFAULT_ROLE = "default";
   public static final String SERVICE_NAME = "Kettle";
   private static Class<?> PKG = WebServer.class; // for i18n purposes, needed by Translator2!!
 
@@ -159,26 +160,28 @@ public class WebServer {
     server = new Server();
 
     List<String> roles = new ArrayList<>();
-    roles.add( Constraint.ANY_ROLE );
+    roles.add( Constraint.ANY_AUTH );
 
     // Set up the security handler, optionally with JAAS
     //
     ConstraintSecurityHandler securityHandler = new ConstraintSecurityHandler();
-
+    
     if ( System.getProperty( "loginmodulename" ) != null
         && System.getProperty( "java.security.auth.login.config" ) != null ) {
       JAASLoginService jaasLoginService = new JAASLoginService( SERVICE_NAME );
       jaasLoginService.setLoginModuleName( System.getProperty( "loginmodulename" ) );
+      if( jaasLoginService.getIdentityService() == null ) {
+        jaasLoginService.setIdentityService( new DefaultIdentityService() );
+      }
       securityHandler.setLoginService( jaasLoginService );
     } else {
-      roles.add( DEFAULT_ROLE );
       HashLoginService hashLoginService;
       SlaveServer slaveServer = transformationMap.getSlaveServerConfig().getSlaveServer();
       if ( !Utils.isEmpty( slaveServer.getPassword() ) ) {
         hashLoginService = new HashLoginService( SERVICE_NAME );
         UserStore userStore = new UserStore();
         userStore.addUser( slaveServer.getUsername(), new Password( slaveServer.getPassword() ),
-          new String[] { DEFAULT_ROLE } );
+          new String[] { } );
         hashLoginService.setUserStore( userStore );
       } else {
         // See if there is a kettle.pwd file in the KETTLE_HOME directory:
@@ -194,12 +197,11 @@ public class WebServer {
           @Override
           protected String[] loadRoleInfo( UserPrincipal user ) {
             List<String> newRoles = new ArrayList<>();
-            newRoles.add( DEFAULT_ROLE );
             String[] roles = super.loadRoleInfo( user );
             if ( null != roles ) {
               Collections.addAll( newRoles, roles );
             }
-            return newRoles.toArray( new String[ 0 ] );
+            return newRoles.toArray( new String[ newRoles.size() ] );
           }
         };
       }
@@ -208,7 +210,7 @@ public class WebServer {
 
     Constraint constraint = new Constraint();
     constraint.setName( Constraint.__BASIC_AUTH );
-    constraint.setRoles( roles.toArray( new String[ 0 ] ) );
+    constraint.setRoles( roles.toArray( new String[ roles.size() ] ) );
     constraint.setAuthenticate( true );
 
     ConstraintMapping constraintMapping = new ConstraintMapping();
@@ -216,7 +218,9 @@ public class WebServer {
     constraintMapping.setPathSpec( "/*" );
 
     securityHandler.setConstraintMappings( new ConstraintMapping[] { constraintMapping } );
+    securityHandler.setAuthenticator( new BasicAuthenticator() );
 
+    
     // Add all the servlets defined in kettle-servlets.xml ...
     //
     ContextHandlerCollection contexts = new ContextHandlerCollection();
@@ -278,7 +282,9 @@ public class WebServer {
     securityHandler.setHandler( handlers );
 
     server.setHandler( securityHandler );
-
+    
+    ExtensionPointHandler.callExtensionPoint( log, KettleExtensionPoint.BeforeCarteStartup.id, server );
+    
     // Start execution
     createListeners();
 
@@ -306,7 +312,7 @@ public class WebServer {
     } catch ( KettleException e ) {
       // Log error but continue regular operations to make sure Carte can be shut down properly.
       //
-      log.logError( "Error calling extension point CarteStartup", e );
+      log.logError( "Error calling extension point CarteShutdown", e );
     }
 
     try {

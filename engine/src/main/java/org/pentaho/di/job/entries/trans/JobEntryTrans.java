@@ -2,7 +2,7 @@
  *
  * Pentaho Data Integration
  *
- * Copyright (C) 2002-2021 by Hitachi Vantara : http://www.pentaho.com
+ * Copyright (C) 2024 by Hitachi Vantara : http://www.pentaho.com
  *
  *******************************************************************************
  *
@@ -745,7 +745,8 @@ public class JobEntryTrans extends JobEntryBase implements Cloneable, JobEntryIn
     List<RowMetaAndData> rows = new ArrayList<RowMetaAndData>( result.getRows() );
 
     while ( ( first && !execPerRow )
-      || ( execPerRow && rows != null && iteration < rows.size() && result.getNrErrors() == 0 )
+      || ( execPerRow && !rows.isEmpty() && iteration < rows.size() && result.getNrErrors() == 0 )
+      || ( execPerRow && rows.isEmpty() && iteration <= rows.size() && shouldConsiderOldBehaviourForEveryInputRow() )
       && !parentJob.isStopped() ) {
       // Clear the result rows of the result
       // Otherwise we double the amount of rows every iteration in the simple cases.
@@ -753,7 +754,8 @@ public class JobEntryTrans extends JobEntryBase implements Cloneable, JobEntryIn
       if ( execPerRow ) {
         result.getRows().clear();
       }
-      if ( rows != null && execPerRow ) {
+
+      if ( rows != null && execPerRow && !rows.isEmpty() ) {
         resultRow = rows.get( iteration );
       } else {
         resultRow = null;
@@ -1133,8 +1135,7 @@ public class JobEntryTrans extends JobEntryBase implements Cloneable, JobEntryIn
           //
           //trans = new Trans( transMeta, this );
           final TransMeta meta = transMeta;
-          trans = new Trans( meta );
-          trans.setParent( this );
+          trans = new Trans( meta, this );
 
           // Pass the socket repository as early as possible...
           //
@@ -1259,8 +1260,21 @@ public class JobEntryTrans extends JobEntryBase implements Cloneable, JobEntryIn
       result.setResult( false );
     }
 
-    setLoggingObjectInUse( false );
     return result;
+  }
+
+  private boolean shouldConsiderOldBehaviourForEveryInputRow() {
+    boolean shouldExecuteWithZeroRows = "Y".equalsIgnoreCase( System.getProperty( Const.COMPATIBILITY_TRANS_EXECUTE_FOR_EVERY_ROW_ON_NO_INPUT, "N" ) );
+    if ( "Y".equalsIgnoreCase( System.getProperty( Const.COMPATIBILITY_SHOW_WARNINGS_EXECUTE_EVERY_INPUT_ROW, "N" ) ) ) {
+      if ( shouldExecuteWithZeroRows ) {
+        log.logBasic(
+          "WARN Detected \"Execute for every row\" but no rows were detected, applying desired behavior, to execute. In case this is not desired behavior, please read property COMPATIBILITY_TRANS_EXECUTE_FOR_EVERY_ROW_ON_NO_INPUT" );
+      } else {
+        log.logBasic(
+          "WARN Detected \"Execute for every row\" but no rows were detected, applying default behavior, not to execute. In case this is not desired behavior, please read property COMPATIBILITY_TRANS_EXECUTE_FOR_EVERY_ROW_ON_NO_INPUT" );
+      }
+    }
+    return shouldExecuteWithZeroRows;
   }
 
   protected void updateResult( Result result ) {
@@ -1694,4 +1708,16 @@ public class JobEntryTrans extends JobEntryBase implements Cloneable, JobEntryIn
     this.suppressResultData = suppressResultData;
   }
 
+  @Override public void callBeforeLog() {
+    if ( parentJob != null ) {
+      parentJob.callBeforeLog();
+    }
+  }
+
+  @Override
+  public void callAfterLog() {
+    if ( parentJob != null ) {
+      parentJob.callAfterLog();
+    }
+  }
 }

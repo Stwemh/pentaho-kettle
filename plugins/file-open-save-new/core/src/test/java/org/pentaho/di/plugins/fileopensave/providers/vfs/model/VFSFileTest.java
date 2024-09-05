@@ -2,7 +2,7 @@
  *
  * Pentaho Data Integration
  *
- * Copyright (C) 2019 by Hitachi Vantara : http://www.pentaho.com
+ * Copyright (C) 2019-2024 by Hitachi Vantara : http://www.pentaho.com
  *
  *******************************************************************************
  *
@@ -24,47 +24,55 @@ package org.pentaho.di.plugins.fileopensave.providers.vfs.model;
 
 import org.junit.Assert;
 import org.junit.Test;
-import org.pentaho.di.connections.vfs.provider.ConnectionFileProvider;
+import org.pentaho.di.plugins.fileopensave.api.providers.exception.FileException;
 
 public class VFSFileTest {
 
   @Test
   public void getConnectionPathTest() {
     VFSFile file = new VFSFile();
-    file.setPath( "ts://bucket/to/file/file.txt" );
-    file.setConnection( "Connection Name" );
-    Assert.assertEquals( ConnectionFileProvider.SCHEME + "://" + file.getConnection() + "/bucket/to/file/file.txt",
-      file.getConnectionPath() );
-    System.out.println( file.getConnectionPath() );
+    String pvfsPath = "pvfs://someConnectionName/bucket/to/file/file.txt";
+    file.setPath( pvfsPath );
+    file.setConnection( "someConnectionName" );
+    Assert.assertEquals( pvfsPath, file.getConnectionPath() );
   }
 
   @Test
   public void getConnectionPathRootTest() {
     VFSFile file = new VFSFile();
-    file.setPath( "ts://bucket" );
-    file.setConnection( "Connection Name" );
-    Assert.assertEquals( ConnectionFileProvider.SCHEME + "://" + file.getConnection() + "/bucket",
-      file.getConnectionPath() );
+    String pvfsPath = "pvfs://someConnectionName/bucket";
+    file.setPath( pvfsPath );
+    file.setConnection( "someConnectionName" );
+    Assert.assertEquals( pvfsPath, file.getConnectionPath() );
   }
 
   @Test
   public void getConnectionPathWithDomainTest() {
     VFSFile file = new VFSFile();
-    file.setPath( "ts://fake.com/path/to/file/file.txt" );
-    file.setConnection( "Connection Name" );
+    String pvfsPath = "pvfs://someConnectionName/path/to/file/file.txt";
+    file.setPath( pvfsPath );
+    file.setConnection( "someConnectionName" );
     file.setDomain( "fake.com" );
-    Assert.assertEquals( ConnectionFileProvider.SCHEME + "://" + file.getConnection() + "/path/to/file/file.txt",
-      file.getConnectionPath() );
+    Assert.assertEquals( pvfsPath, file.getConnectionPath() );
 
   }
 
   @Test
   public void getConnectionPathWithDomainRootTest() {
     VFSFile file = new VFSFile();
-    file.setPath( "ts://fake.com" );
-    file.setConnection( "Connection Name" );
+    String pvfsPath = "pvfs://someConnectionName";
+    file.setPath( pvfsPath );
+    file.setConnection( "someConnectionName" );
     file.setDomain( "fake.com" );
-    Assert.assertEquals( ConnectionFileProvider.SCHEME + "://" + file.getConnection(), file.getConnectionPath() );
+    Assert.assertEquals( pvfsPath, file.getConnectionPath() );
+  }
+
+  @Test
+  public void getNameDecodedTest() {
+    VFSFile file = new VFSFile();
+    String name = "some%25Connection%25Name";
+    file.setName( name );
+    Assert.assertEquals( "some%Connection%Name", file.getNameDecoded() );
   }
 
 }
